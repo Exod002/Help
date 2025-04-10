@@ -12,6 +12,10 @@ class CustomUser(AbstractUser):
     # Track logout time (last_login is built in)
     last_logout = models.DateTimeField(blank=True, null=True)
 
+    # Override the username field to use email
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']  # username is still required for admin interface
+
     def __str__(self):
         return self.email
 

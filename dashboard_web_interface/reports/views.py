@@ -1,11 +1,26 @@
 # dashboard/views.py
 import random
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout as auth_logout
+from django.contrib.auth import login, logout as auth_logout, authenticate
 from django.core.mail import send_mail
 from .forms import CustomUserCreationForm
 from .models import CustomUser, Report
 from django.utils import timezone
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import io
+from PIL import Image
+import base64
+import requests
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 def register(request):
     if request.method == 'POST':
@@ -70,6 +85,17 @@ def logout_view(request):
     auth_logout(request)
     return redirect('login')
 
+def report_view(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    # Get all reports for the current user
+    reports = Report.objects.filter(user=request.user).order_by('-created_at')
+    
+    return render(request, 'reports/report_list.html', {
+        'reports': reports
+    })
+
 # dashboard/views.py (process_screenshot view update)
 import base64, os, json
 from django.conf import settings
@@ -110,26 +136,125 @@ def process_screenshot(request):
 # dashboard/views.py (continued)
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-from weasyprint import HTML
 
-def download_pdf(request):
-    report_id = request.session.get('report_id')
-    if report_id:
-        try:
-            report = Report.objects.get(id=report_id, user=request.user)
-            # Render a template to HTML for PDF conversion
-            html_string = render_to_string('pdf_report.html', {
-                'report_text': report.report_text,
-                'screenshot_path': request.session.get('screenshot_path', None)
-            }, request=request)
-            html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
-            pdf = html.write_pdf()
-            # Mark as downloaded
-            report.downloaded = True
-            report.save()
-            response = HttpResponse(pdf, content_type='application/pdf')
-            response['Content-Disposition'] = 'attachment; filename="dashboard_report.pdf"'
-            return response
-        except Report.DoesNotExist:
-            pass
-    return HttpResponse("Report not found.", status=404)
+def download_report(request):
+    # Get the report data
+    report_data = {
+        'title': 'Sample Report',
+        'content': 'This is a placeholder for the AI-generated report.',
+        'date': '2024-03-20'
+    }
+    
+    # Create a BytesIO buffer to receive PDF data
+    buffer = BytesIO()
+    
+    # Create the PDF object
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    
+    # Create custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30,
+        alignment=1  # Center alignment
+    )
+    
+    date_style = ParagraphStyle(
+        'CustomDate',
+        parent=styles['Normal'],
+        fontSize=12,
+        textColor=colors.gray,
+        spaceAfter=30,
+        alignment=1  # Center alignment
+    )
+    
+    # Create the content
+    content = []
+    content.append(Paragraph(report_data['title'], title_style))
+    content.append(Paragraph(f"Generated on: {report_data['date']}", date_style))
+    content.append(Spacer(1, 20))
+    
+    # Split content into paragraphs and add them
+    for paragraph in report_data['content'].split('\n'):
+        if paragraph.strip():
+            content.append(Paragraph(paragraph, styles['Normal']))
+            content.append(Spacer(1, 12))
+    
+    # Build the PDF
+    doc.build(content)
+    
+    # Get the value of the BytesIO buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    # Create response
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="report_{report_data["date"]}.pdf"'
+    response.write(pdf)
+    
+    return response
+
+def login_view(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        user = authenticate(request, email=email, password=password)
+        
+        if user is not None:
+            if user.is_verified:
+                login(request, user)
+                return redirect('dashboard')
+            else:
+                messages.error(request, 'Please verify your email before logging in.')
+        else:
+            messages.error(request, 'Invalid email or password.')
+    
+    return render(request, 'registration/login.html')
+
+@login_required
+def dashboard(request):
+    return render(request, 'reports/dashboard.html')
+
+@login_required
+def welcome_page(request):
+    return render(request, 'reports/welcome.html')
+
+@login_required
+def powerbi_report(request):
+    # Power BI report URL - replace with your actual Power BI report URL
+    powerbi_url = "https://app.powerbi.com/reportEmbed?reportId=your-report-id"
+    return render(request, 'reports/powerbi.html', {'powerbi_url': powerbi_url})
+
+@login_required
+def take_screenshot(request):
+    if request.method == 'POST':
+        # Get the screenshot data from the request
+        screenshot_data = request.POST.get('screenshot')
+        
+        # Convert base64 to image
+        image_data = base64.b64decode(screenshot_data.split(',')[1])
+        image = Image.open(io.BytesIO(image_data))
+        
+        # Save the image temporarily
+        image_path = 'media/screenshots/screenshot.png'
+        image.save(image_path)
+        
+        # TODO: Add AI model integration here
+        # For now, we'll just redirect to a placeholder report
+        return redirect('generate_report')
+    
+    return render(request, 'reports/screenshot.html')
+
+@login_required
+def generate_report(request):
+    # TODO: Add AI model integration to generate the report
+    # For now, we'll use placeholder data
+    report_data = {
+        'title': 'Sample Report',
+        'content': 'This is a placeholder for the AI-generated report.',
+        'date': '2024-03-20'
+    }
+    
+    return render(request, 'reports/generated_report.html', {'report': report_data})

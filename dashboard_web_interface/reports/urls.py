@@ -5,16 +5,18 @@ from . import views
 
 urlpatterns = [
     # Dashboard and report pages
-    #path('', views.dashboard_view, name='dashboard'),
-    path('process_screenshot/', views.process_screenshot, name='process_screenshot'),
-    path('report/', views.report_view, name='report'),
-    path('download_pdf/', views.download_pdf, name='download_pdf'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('welcome/', views.welcome_page, name='welcome'),
+    path('powerbi/', views.powerbi_report, name='powerbi_report'),
+    path('screenshot/', views.take_screenshot, name='take_screenshot'),
+    path('generate-report/', views.generate_report, name='generate_report'),
+    path('download-report/', views.download_report, name='download_report'),
 
     # Authentication: registration, email verification, login, logout, and password reset
     path('register/', views.register, name='register'),
-    path('verify_email/', views.verify_email, name='verify_email'),
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
-    path('logout/', views.logout_view, name='logout'),
+    path('verify-email/<str:token>/', views.verify_email, name='verify_email'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('password_reset/', auth_views.PasswordResetView.as_view(template_name='registration/password_reset.html'), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'), name='password_reset_confirm'),

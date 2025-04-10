@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify Email - APO Dashboard{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2 class="text-center mb-4">Verify Your Email</h2>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="code">Verification Code</label>
+            <input type="text" name="code" id="code" class="form-control" required>
+            <small class="form-text text-muted">Enter the 6-digit code sent to your email</small>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Verify</button>
+    </form>
+</div>
+{% endblock %} 

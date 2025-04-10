@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Report Details - APO Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h2>Report Details</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h5>Report Information</h5>
+                    <p><strong>Report ID:</strong> {{ report.id }}</p>
+                    <p><strong>Created by:</strong> {{ report.user.email }}</p>
+                    <p><strong>Department:</strong> {{ report.user.department }}</p>
+                    <p><strong>Created at:</strong> {{ report.created_at }}</p>
+                    <p><strong>Downloaded:</strong> {% if report.downloaded %}Yes{% else %}No{% endif %}</p>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <h5>Report Content</h5>
+                    <div class="border p-3 bg-light">
+                        {{ report_text|linebreaks }}
+                    </div>
+                </div>
+            </div>
+
+            {% if screenshot_path %}
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h5>Screenshot</h5>
+                    <img src="{{ screenshot_path }}" alt="Report Screenshot" class="img-fluid">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

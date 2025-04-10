@@ -1,0 +1,49 @@
+{% extends 'reports/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Power BI Report</h5>
+                    <button id="takeScreenshot" class="btn btn-primary">
+                        Take Screenshot
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="ratio ratio-16x9">
+                        <iframe src="{{ powerbi_url }}" frameborder="0" allowFullScreen="true"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for screenshot submission -->
+<form id="screenshotForm" method="post" action="{% url 'take_screenshot' %}" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="screenshot" id="screenshotData">
+</form>
+
+{% block extra_js %}
+<!-- Include html2canvas from CDN -->
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+document.getElementById('takeScreenshot').addEventListener('click', function() {
+    // Use html2canvas to take screenshot
+    html2canvas(document.querySelector('.card-body')).then(canvas => {
+        // Convert canvas to base64
+        const screenshotData = canvas.toDataURL('image/png');
+        
+        // Set the screenshot data in the hidden input
+        document.getElementById('screenshotData').value = screenshotData;
+        
+        // Submit the form
+        document.getElementById('screenshotForm').submit();
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 
